@@ -71,11 +71,9 @@ void ofApp::draw(){
     colorImg_cam.draw(draw_whole_x, draw_whole_y);
     
     if (bNewFrame){
-        //colorImg_cam.setFromPixels(vidGrabber.getPixels());
         
-        if (bLearnBakground == true){
-            grayBgs.clear();
-        }
+        // dicide(crop) grayImages(grayImgs) for each lightface
+        grayImgs.clear();
         for (int w=0; w<num_w; w++){
             for (int h=0; h<num_h; h++){
                 int val_id = w*num_w+h;
@@ -85,64 +83,70 @@ void ofApp::draw(){
                 int target_h = target_hs[val_id];
                 colorImg.allocate(target_w,target_h);
                 grayImage.allocate(target_w,target_h);
-                //grayBg.allocate(target_w,target_h);
-                grayDiff.allocate(target_w,target_h);
 
                 img.setFromPixels(vidGrabber.getPixels());
                 img.crop(target_x, target_y, target_w, target_h);
                 colorImg.setFromPixels(img.getPixels());
                 grayImage = colorImg;
                 //grayBg = grayImage;
-                
-                if (bLearnBakground == true){
-                    grayBgs.push_back(grayImage);
-                    
-                    if (val_id == val_size - 1){
-                        bLearnBakground = false;
-                    }
-                }
-                
-                grayDiff.absDiff(grayBgs[val_id], grayImage);
-                grayDiff.threshold(threshold);
-                
-                int target_px_max = target_w*target_h/2;
-                int target_px_min = 20;
-                int found_max = 40;
-                int found_min = 0;
-                contourFinder.findContours(grayDiff, target_px_min, target_px_max, found_max, true);
-                int found = contourFinder.nBlobs;
-                int value = 255*found/(found_max-found_min);
-                values[val_id] = value;
-                printf("num %d   w %d   h %d   found %d   value %d \n", val_id, w, h, found, value);
-
-                
-                int draw_x = draw_whole_x + target_x;
-                int draw_y = draw_whole_y + target_y;
-                
-                grayImage.draw(draw_x, draw_y);
-                
-                
-                for (int i = 0; i < contourFinder.nBlobs; i++){
-                    contourFinder.blobs[i].draw(draw_x, draw_y);
-                }
-                
-                
-                ofSetHexColor(0xffffff);
-                stringstream reportStr1;
-                reportStr1 << found << "_" << value;
-                ofDrawBitmapString(reportStr1.str(), draw_x, draw_y+10);
-                
-                stringstream reportStr;
-                reportStr << "bg subtraction and blob detection" << endl
-                << "press ' ' to capture bg" << endl
-                << "threshold " << threshold << " (press: +/-)" << endl
-                << "fps: " << ofGetFrameRate();
-                ofDrawBitmapString(reportStr.str(), draw_whole_x, draw_whole_y+cam_h+50);
-                
-
+                grayImgs.push_back(grayImage);
             }
         }
         
+        // dicide background grayImages(grayBgs)
+        if (bLearnBakground == true){
+            grayBgs.clear();
+            for (int val_id=0; val_id<val_size; val_id++){
+                grayBgs.push_back(grayImgs[val_id]);
+            }
+            bLearnBakground = false;
+        }
+
+        // find the number of brain shrimp
+        founds.clear();
+        for (int val_id=0; val_id<val_size; val_id++){
+            grayDiff.allocate(target_ws[val_id], target_hs[val_id]);
+            grayDiff.absDiff(grayBgs[val_id], grayImgs[val_id]);
+            grayDiff.threshold(threshold);
+            
+            int target_px_max = target_ws[val_id]*target_hs[val_id]/2;
+            contourFinder.findContours(grayDiff, target_px_min, target_px_max, found_max, true);
+            int found = contourFinder.nBlobs;
+            founds.push_back(found);
+
+            ofSetHexColor(0xffffff);
+            draw_xs[val_id] = draw_whole_x + target_xs[val_id];
+            draw_ys[val_id] = draw_whole_y + target_ys[val_id];
+            grayImgs[val_id].draw(draw_xs[val_id], draw_ys[val_id]);
+            for (int i = 0; i < contourFinder.nBlobs; i++){
+                contourFinder.blobs[i].draw(draw_xs[val_id], draw_ys[val_id]);
+            }
+        }
+        
+        // calculate the value of lightface
+        for (int val_id=0; val_id<val_size; val_id++){
+            int value = 255*founds[val_id]/(found_max-found_min);
+            values[val_id] = value;
+            printf("id %d   found %d   value %d \n", val_id, founds[val_id], value);
+        }
+        
+        // draw values(found, value)
+        for (int val_id=0; val_id<val_size; val_id++){
+            ofSetHexColor(0xffffff);
+            stringstream reportStr1;
+            reportStr1 << founds[val_id] << "_" << values[val_id];
+            ofDrawBitmapString(reportStr1.str(), draw_xs[val_id], draw_ys[val_id]+10);
+        }
+
+        // draw settings
+        stringstream reportStr;
+        reportStr << "bg subtraction and blob detection" << endl
+        << "press ' ' to capture bg" << endl
+        << "threshold " << threshold << " (press: +/-)" << endl
+        << "fps: " << ofGetFrameRate();
+        ofDrawBitmapString(reportStr.str(), draw_whole_x, draw_whole_y+cam_h+50);
+        
+        // send(write) values to Arduino
         if (isPressed) {
             for (int i=0; i<val_size; i++){
                 isValids[i] = false;
@@ -152,7 +156,7 @@ void ofApp::draw(){
                 bool byteWasWritten2 = mySerial.writeByte(high);
                 bool byteWasWritten3 = mySerial.writeByte(low);
                 if ( byteWasWritten1 && byteWasWritten2 && byteWasWritten3 ) {
-                    printf("                        write value %d \n", values[i]);
+                    printf("           write value %d \n", values[i]);
                     isValids[i] = true;
                 } else {
                     printf("an error occurred \n");

@@ -4,9 +4,6 @@
 
 #include "ofxOpenCv.h"
 
-const int num_w = 3;
-const int num_h = 3;
-const int val_size = num_w * num_h;
 
 class ofApp : public ofBaseApp{
 
@@ -33,18 +30,8 @@ public:
     ofxCvColorImage			colorImg;
     
     ofxCvGrayscaleImage 	grayImage;
+    vector<ofxCvGrayscaleImage>	grayImgs;
     vector<ofxCvGrayscaleImage>	grayBgs;
-    //ofxCvGrayscaleImage 	grayBg;
-    //ofxCvGrayscaleImage 	grayBg0;
-    //ofxCvGrayscaleImage 	grayBg1;
-    //ofxCvGrayscaleImage 	grayBg2;
-    //ofxCvGrayscaleImage 	grayBg3;
-    //ofxCvGrayscaleImage 	grayBg4;
-    //ofxCvGrayscaleImage 	grayBg5;
-    //ofxCvGrayscaleImage 	grayBg6;
-    //ofxCvGrayscaleImage 	grayBg7;
-    //ofxCvGrayscaleImage 	grayBg8;
-    //ofxCvGrayscaleImage 	grayBg9;
     ofxCvGrayscaleImage 	grayDiff;
     
     ofxCvContourFinder 	contourFinder;
@@ -56,6 +43,9 @@ public:
     ofImage img_old;
     ofXml XML;
     
+    static const int num_w = 3;
+    static const int num_h = 3;
+    static const int val_size = num_w * num_h;
     bool isValids[val_size];
     const int cam_coe = 2;
     const int target_whole_base = 200;
@@ -74,6 +64,8 @@ public:
     int target_y;
     int target_w;
     int target_h;
+    int draw_xs[val_size];
+    int draw_ys[val_size];
     int values[val_size];
     bool bNewFrame = false;
     bool isPressed = false;
@@ -85,6 +77,11 @@ public:
     int target_id = 0;
     bool isReadSetting = false;
 
-
+    vector<int> founds;
+    
+    int target_px_min = 20;
+    int found_max = 40;
+    int found_min = 0;
+    
 };
 
