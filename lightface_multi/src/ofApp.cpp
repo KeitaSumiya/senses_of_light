@@ -102,7 +102,7 @@ void ofApp::draw(){
             bLearnBakground = false;
         }
 
-        // find the number of brain shrimp
+        // find the number of brine shrimps
         founds.clear();
         for (int val_id=0; val_id<val_size; val_id++){
             grayDiff.allocate(target_ws[val_id], target_hs[val_id]);
