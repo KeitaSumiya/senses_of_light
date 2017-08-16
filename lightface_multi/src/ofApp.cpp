@@ -1,38 +1,5 @@
 #include "ofApp.h"
 
-const int num_w = 3;
-const int num_h = 3;
-const int val_size = num_w * num_h;
-bool isValids[val_size];
-const int cam_coe = 2;
-const int target_whole_base = 200;
-
-int cam_w;
-int cam_h;
-int target_whole_x = 20;
-int target_whole_y = 20;
-int target_whole_w;
-int target_whole_h;
-int target_xs[val_size];
-int target_ys[val_size];
-int target_ws[val_size];
-int target_hs[val_size];
-int target_x;
-int target_y;
-int target_w;
-int target_h;
-int values[val_size];
-bool bNewFrame = false;
-bool isPressed = false;
-
-ofSerial mySerial;
-
-bool isBig = false;
-bool isSmall = false;
-int target_id = 0;
-bool isReadSetting = false;
-
-
 //--------------------------------------------------------------
 void ofApp::setup(){
     vidGrabber.setVerbose(true);
@@ -105,7 +72,10 @@ void ofApp::draw(){
     
     if (bNewFrame){
         //colorImg_cam.setFromPixels(vidGrabber.getPixels());
-
+        
+        if (bLearnBakground == true){
+            grayBgs.clear();
+        }
         for (int w=0; w<num_w; w++){
             for (int h=0; h<num_h; h++){
                 int val_id = w*num_w+h;
@@ -125,64 +95,14 @@ void ofApp::draw(){
                 //grayBg = grayImage;
                 
                 if (bLearnBakground == true){
-                    if (val_id == 0){
-                        grayBg0.allocate(target_w,target_h);
-                        grayBg0 = grayImage;
-                    } else if (val_id == 1){
-                        grayBg1.allocate(target_w,target_h);
-                        grayBg1 = grayImage;
-                    } else if (val_id == 2){
-                        grayBg2.allocate(target_w,target_h);
-                        grayBg2 = grayImage;
-                    } else if (val_id == 3){
-                        grayBg3.allocate(target_w,target_h);
-                        grayBg3 = grayImage;
-                    } else if (val_id == 4){
-                        grayBg4.allocate(target_w,target_h);
-                        grayBg4 = grayImage;
-                    } else if (val_id == 5){
-                        grayBg5.allocate(target_w,target_h);
-                        grayBg5 = grayImage;
-                    } else if (val_id == 6){
-                        grayBg6.allocate(target_w,target_h);
-                        grayBg6 = grayImage;
-                    } else if (val_id == 7){
-                        grayBg7.allocate(target_w,target_h);
-                        grayBg7 = grayImage;
-                    } else if (val_id == 8){
-                        grayBg8.allocate(target_w,target_h);
-                        grayBg8 = grayImage;
-                    } else if (val_id == 9){
-                        grayBg9.allocate(target_w,target_h);
-                        grayBg9 = grayImage;
-                    }
+                    grayBgs.push_back(grayImage);
                     
                     if (val_id == val_size - 1){
                         bLearnBakground = false;
                     }
                 }
                 
-                if (val_id == 0){
-                    grayDiff.absDiff(grayBg0, grayImage);
-                } else if (val_id == 1){
-                    grayDiff.absDiff(grayBg1, grayImage);
-                } else if (val_id == 2){
-                    grayDiff.absDiff(grayBg2, grayImage);
-                } else if (val_id == 3){
-                    grayDiff.absDiff(grayBg3, grayImage);
-                } else if (val_id == 4){
-                    grayDiff.absDiff(grayBg4, grayImage);
-                } else if (val_id == 5){
-                    grayDiff.absDiff(grayBg5, grayImage);
-                } else if (val_id == 6){
-                    grayDiff.absDiff(grayBg6, grayImage);
-                } else if (val_id == 7){
-                    grayDiff.absDiff(grayBg7, grayImage);
-                } else if (val_id == 8){
-                    grayDiff.absDiff(grayBg8, grayImage);
-                } else if (val_id == 9){
-                    grayDiff.absDiff(grayBg8, grayImage);
-                }
+                grayDiff.absDiff(grayBgs[val_id], grayImage);
                 grayDiff.threshold(threshold);
                 
                 int target_px_max = target_w*target_h/2;
@@ -297,9 +217,6 @@ void ofApp::keyPressed(int key){
             break;
         case '8':
             target_id = 8;
-            break;
-        case '9':
-            target_id = 9;
             break;
 	}
 
