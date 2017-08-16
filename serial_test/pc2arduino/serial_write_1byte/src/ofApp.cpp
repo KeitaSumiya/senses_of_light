@@ -2,14 +2,14 @@
 
 ofSerial mySerial;
 unsigned char myByte = 123;
+bool isPressed = false;
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    ofSetBackgroundAuto(false);
-    //ofSetVerticalSync(false);
     ofSetFrameRate(60);
 
-    mySerial.setup("/dev/cu.usbmodem1411",9600);
+    mySerial.setup("/dev/cu.usbmodem1421",9600);
+    //cout << mySerial.isInitialized() << endl;
 }
 
 //--------------------------------------------------------------
@@ -18,13 +18,19 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    bool byteWasWritten = mySerial.writeByte(myByte);
-    if ( !byteWasWritten )
-        printf("byte was not written to serial port \n");
+    if (isPressed) {
+        bool byteWasWritten = mySerial.writeByte(myByte);
+        if ( !byteWasWritten )
+            printf("byte was not written to serial port \n");
+    }
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
+    if(key=='g'){
+        cout << mySerial.isInitialized() << endl;
+        isPressed = true;
+    }
     
 }
 
@@ -45,7 +51,6 @@ void ofApp::mouseDragged(int x, int y, int button){
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button){
-    
 }
 
 //--------------------------------------------------------------
