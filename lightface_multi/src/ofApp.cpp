@@ -1,7 +1,7 @@
 #include "ofApp.h"
 
-const int num_w = 2;
-const int num_h = 2;
+const int num_w = 3;
+const int num_h = 3;
 const int val_size = num_w * num_h;
 bool isValids[val_size];
 const int cam_coe = 2;
@@ -23,6 +23,7 @@ int target_w;
 int target_h;
 int values[val_size];
 bool bNewFrame = false;
+bool isPressed = false;
 
 ofSerial mySerial;
 
@@ -35,7 +36,7 @@ bool isReadSetting = false;
 //--------------------------------------------------------------
 void ofApp::setup(){
     vidGrabber.setVerbose(true);
-    vidGrabber.setDeviceID(1);
+    vidGrabber.setDeviceID(0);
     vidGrabber.initGrabber(cam_coe*320,cam_coe*240);
     cam_w = vidGrabber.getWidth();
     cam_h = vidGrabber.getHeight();
@@ -81,7 +82,7 @@ void ofApp::setup(){
     colorImg_cam.allocate(cam_w,cam_h);
 
 	bLearnBakground = true;
-	threshold = 40;
+	threshold = 80;
 
 }
 
@@ -222,18 +223,20 @@ void ofApp::draw(){
             }
         }
         
-        for (int i=0; i<val_size; i++){
-            isValids[i] = false;
-            int high = (values[i] >> 7) & 127;
-            int low  = values[i] & 127;
-            bool byteWasWritten1 = mySerial.writeByte(128+i);
-            bool byteWasWritten2 = mySerial.writeByte(high);
-            bool byteWasWritten3 = mySerial.writeByte(low);
-            if ( byteWasWritten1 && byteWasWritten2 && byteWasWritten3 ) {
-                printf("                        write value %d \n", values[i]);
-                isValids[i] = true;
-            } else {
-                printf("an error occurred \n");
+        if (isPressed) {
+            for (int i=0; i<val_size; i++){
+                isValids[i] = false;
+                int high = (values[i] >> 7) & 127;
+                int low  = values[i] & 127;
+                bool byteWasWritten1 = mySerial.writeByte(128+i);
+                bool byteWasWritten2 = mySerial.writeByte(high);
+                bool byteWasWritten3 = mySerial.writeByte(low);
+                if ( byteWasWritten1 && byteWasWritten2 && byteWasWritten3 ) {
+                    printf("                        write value %d \n", values[i]);
+                    isValids[i] = true;
+                } else {
+                    printf("an error occurred \n");
+                }
             }
         }
     }
@@ -242,6 +245,9 @@ void ofApp::draw(){
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
 	switch (key){
+        case 'g':
+            isPressed = true;
+            break;
 		case ' ':
 			bLearnBakground = true;
 			break;

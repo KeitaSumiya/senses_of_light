@@ -1,14 +1,14 @@
-const int val_size = 4;
-int values[val_size] = {0, 0, 0, 0};
-bool isValids[val_size] = {false, false, false, false};
-const int OUT_PINs[val_size] = {3, 5, 6, 9};
+const int val_size = 9;
+int values[val_size] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+bool isValids[val_size] = {false, false, false, false, false, false, false, false, false};
+const int OUT_PINs[val_size] = {2, 3, 4, 5, 6, 7, 8, 9, 10};
 
 void setup(){
   Serial.begin(9600);
 }
 
 void loop(){
-  bool isValids[val_size] = {false, false, false, false};
+  bool isValids[val_size] = {false, false, false, false, false, false, false, false, false};
   if (Serial.available() >= 3*val_size) {
     int head = Serial.read();
     for (int i=0; i<val_size; i++){
