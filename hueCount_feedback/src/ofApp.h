@@ -1,9 +1,7 @@
 #pragma once
-
 #include "ofMain.h"
-
 #include "ofxOpenCv.h"
-
+#include "LfRect.hpp"
 
 class ofApp : public ofBaseApp{
 
@@ -30,34 +28,22 @@ public:
     ofxCvColorImage			colorImg;
     
     ofImage                 selectedColorOFImg;
-    //ofImage                 selectedGrayOFImg;
     ofImage                 selectedBipolarizedOFImg;
     ofxCvColorImage			selectedColorImg;
-    //ofxCvGrayscaleImage 	selectedGrayImg;
     ofxCvGrayscaleImage 	selectedBipolarizedImg;
 
     vector<ofxCvColorImage>	selectedColorImgs;
     vector<ofxCvColorImage>	colorImgs;
-    //ofxCvGrayscaleImage 	grayImage;
-    //vector<ofxCvGrayscaleImage>	grayImgs;
     vector<ofxCvGrayscaleImage>	bipolarizedImgs;
-    //vector<ofxCvGrayscaleImage>	grayBgs;
-    //ofxCvGrayscaleImage 	grayDiff;
-    
-    //ofxCvContourFinder 	contourFinder;
-    
-    //int 				threshold;
-    //bool				bLearnBakground;
     
     vector<ofImage> imgs;
     ofImage img;
-    ofImage img_old;
     ofXml XML;
     
     static const int num_w = 3;
     static const int num_h = 3;
-    static const int val_size = num_w * num_h;
-    bool isValids[val_size];
+    static const int num_lf = num_w * num_h;
+    bool isValids[num_lf];
     const int cam_coe = 2;
     const int target_whole_base = 200;
     
@@ -67,17 +53,17 @@ public:
     int target_whole_y = 20;
     int target_whole_w;
     int target_whole_h;
-    int target_xs[val_size];
-    int target_ys[val_size];
-    int target_ws[val_size];
-    int target_hs[val_size];
+    int target_xs[num_lf];
+    int target_ys[num_lf];
+    int target_ws[num_lf];
+    int target_hs[num_lf];
     int target_x;
     int target_y;
     int target_w;
     int target_h;
-    int draw_xs[val_size];
-    int draw_ys[val_size];
-    int LfRectBrightnesss[val_size];
+    int draw_xs[num_lf];
+    int draw_ys[num_lf];
+    int LfRectBrightnesss[num_lf];
     bool bNewFrame = false;
     bool isPressed = false;
     
@@ -88,12 +74,22 @@ public:
     int target_id = 0;
     bool isReadSetting = false;
 
-    //vector<int> founds;
     vector<int> pxCounts;
     
-    //int target_px_min = 20;
-    //int found_max = 40;
-    //int found_min = 0;
+    int threshold_bNum; // threshold for the number of 'b'rien shrimp
+    int threshold_mNum = 4; // threshold for the number of 'm'in state(min state means a darkest lightface)
+    vector<int> minRectNum; // vector of lightface IDs for min state. This also count the number of min state.
     
+    //LF simulator
+    LfRect lfRect[9];
+    int bStatus[9];
+
+    //lightface rect setup
+    int size = 150;
+    int gap = 3;
+    
+    int draw_whole_x = 50;
+    int draw_whole_y = 50;
+
 };
 

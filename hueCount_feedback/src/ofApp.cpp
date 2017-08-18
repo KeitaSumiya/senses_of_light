@@ -7,11 +7,13 @@ void ofApp::setup(){
     vidGrabber.initGrabber(cam_coe*320,cam_coe*240);
     cam_w = vidGrabber.getWidth();
     cam_h = vidGrabber.getHeight();
+    colorImg_cam.allocate(cam_w,cam_h);
     printf("cam_w %d   cam_h %d \n", cam_w, cam_h );
     
     ofSetFrameRate(5);
     mySerial.setup("/dev/cu.usbmodem1421",9600);
     
+    // decide position of lf-rectangle in image from webcam
     target_whole_w = cam_coe*target_whole_base;
     target_whole_h = cam_coe*target_whole_base;
     if (target_whole_w > cam_w - target_whole_x){
@@ -26,70 +28,76 @@ void ofApp::setup(){
         XML.load("mySettings.xml");
         for (int w=0; w<num_w; w++){
             for (int h=0; h<num_h; h++){
-                int val_id = w*num_w+h;
-                target_xs[val_id] = XML.getValue<int>("//X"+ofToString(val_id));
-                target_ys[val_id] = XML.getValue<int>("//Y"+ofToString(val_id));
-                target_ws[val_id] = XML.getValue<int>("//W"+ofToString(val_id));
-                target_hs[val_id] = XML.getValue<int>("//H"+ofToString(val_id));
+                int id_lf = w*num_w + h;
+                target_xs[id_lf] = XML.getValue<int>("//X"+ofToString(id_lf));
+                target_ys[id_lf] = XML.getValue<int>("//Y"+ofToString(id_lf));
+                target_ws[id_lf] = XML.getValue<int>("//W"+ofToString(id_lf));
+                target_hs[id_lf] = XML.getValue<int>("//H"+ofToString(id_lf));
             }
         }
     } else {
         for (int w=0; w<num_w; w++){
             for (int h=0; h<num_h; h++){
-                int val_id = w*num_w+h;
-                target_xs[val_id] = target_whole_x + w*target_w;
-                target_ys[val_id] = target_whole_y + h*target_h;
-                target_ws[val_id] = target_w;
-                target_hs[val_id] = target_h;
+                int id_lf = w*num_w + h;
+                target_xs[id_lf] = target_whole_x + w*target_w;
+                target_ys[id_lf] = target_whole_y + h*target_h;
+                target_ws[id_lf] = target_w;
+                target_hs[id_lf] = target_h;
             }
         }
     }
 
+    
+    for(int w=0; w<num_w; w++){
+        for(int h=0; h<num_h; h++){
+            int x = 1000         + (size+gap)*w;
+            int y = draw_whole_y + (size+gap)*h + gap*5;
+            lfRect[w*3+h].setup(ofVec2f(x,y), size, 10);
+        }
+    }
 
-    colorImg_cam.allocate(cam_w,cam_h);
-
-	//bLearnBakground = true;
-	//threshold = 112;
-
+    //LF default status setup
+    for(int id_lf=0; id_lf<num_lf; id_lf++){
+        lfRect[id_lf].status = 0;
+        if(lfRect[id_lf].status == 0){
+            bStatus[id_lf] = 3;
+        }
+    }
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-	ofBackground(100,100,100);
-
+    ofBackground(100,100,100);
+    
     bNewFrame = false;
     vidGrabber.update();
     bNewFrame = vidGrabber.isFrameNew();
-
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-    int draw_whole_x = 50;
-    int draw_whole_y = 50;
     ofSetHexColor(0xffffff);
     colorImg_cam.draw(draw_whole_x, draw_whole_y);
     
     if (bNewFrame){
         
-        // dicide(crop) colorImages for each lightface
+        // decide(crop) colorImages for each lightface
         colorImgs.clear();
         imgs.clear();
         for (int w=0; w<num_w; w++){
             for (int h=0; h<num_h; h++){
-                int val_id = w*num_w+h;
-                int target_x = target_xs[val_id];
-                int target_y = target_ys[val_id];
-                int target_w = target_ws[val_id];
-                int target_h = target_hs[val_id];
+                int id_lf = w*num_w + h;
+                int target_x = target_xs[id_lf];
+                int target_y = target_ys[id_lf];
+                int target_w = target_ws[id_lf];
+                int target_h = target_hs[id_lf];
                 colorImg.allocate(target_w,target_h);
-                //grayImage.allocate(target_w,target_h);
 
                 img.setFromPixels(vidGrabber.getPixels());
                 img.crop(target_x, target_y, target_w, target_h);
                 imgs.push_back(img);
                 colorImg.setFromPixels(img.getPixels());
-                //grayImage = colorImg;
                 colorImgs.push_back(colorImg);
             }
         }
@@ -99,32 +107,32 @@ void ofApp::draw(){
         pxCounts.clear();
         selectedColorImgs.clear();
         bipolarizedImgs.clear();
-        for (int val_id=0; val_id<val_size; val_id++){
+        for (int id_lf=0; id_lf<num_lf; id_lf++){
             int pxCount = 0;
-            int target_x = target_xs[val_id];
-            int target_y = target_ys[val_id];
-            int target_w = target_ws[val_id];
-            int target_h = target_hs[val_id];
+            int target_x = target_xs[id_lf];
+            int target_y = target_ys[id_lf];
+            int target_w = target_ws[id_lf];
+            int target_h = target_hs[id_lf];
         
             selectedColorOFImg.allocate(target_w, target_h, OF_IMAGE_COLOR);
             selectedBipolarizedOFImg.allocate(target_w, target_h, OF_IMAGE_GRAYSCALE);
             selectedColorOFImg.setColor(ofColor::black);
             selectedBipolarizedOFImg.setColor(ofColor::black);
 
-            //Red: 0 (wrapped round from 255)
-            //Orange: 25
-            //Yellow: 42
-            //Green: 85
-            //Blue: 170
-            //Purple: 205
-            //Red: 255 (wraps round to 0)
-            int hueMin = 37;
-            int hueMax = hueMin + 10;
+            //  0: Red(wrapped round from 255)
+            // 25: Orange
+            // 42: Yellow
+            // 85: Green
+            //170: Blue
+            //205: Purple
+            //255: Red (wraps round to 0)
+            int hueMin = 160;
+            int hueMax = hueMin + 20;
             for (int img_w=0; img_w<target_w; img_w++){
                 for (int img_h=0; img_h<target_h; img_h++){
-                    float hue =        imgs[val_id].getColor(img_w, img_h).getHue();
-                    float saturation = imgs[val_id].getColor(img_w, img_h).getSaturation();
-                    float brightness = imgs[val_id].getColor(img_w, img_h).getBrightness();
+                    float hue =        imgs[id_lf].getColor(img_w, img_h).getHue();
+                    float saturation = imgs[id_lf].getColor(img_w, img_h).getSaturation();
+                    float brightness = imgs[id_lf].getColor(img_w, img_h).getBrightness();
                     float bipolarizedHue = 0;
                     float selectedHue = 0;
                     float selectedSaturation = 0;
@@ -165,61 +173,86 @@ void ofApp::draw(){
             selectedBipolarizedImg.setFromPixels(selectedBipolarizedOFImg.getPixels());
             selectedColorImgs.push_back(selectedColorImg);
             bipolarizedImgs.push_back(selectedBipolarizedImg);
-
-            //selectedColorImg.draw(draw_whole_x + target_xs[val_id], draw_whole_y + target_ys[val_id]);
         }
         
         // draw pixels for selected hue
-        for (int val_id=0; val_id<val_size; val_id++){
+        for (int id_lf=0; id_lf<num_lf; id_lf++){
             ofSetHexColor(0xffffff);
-            draw_xs[val_id] = draw_whole_x + target_xs[val_id];
-            draw_ys[val_id] = draw_whole_y + target_ys[val_id];
-            //bipolarizedImgs[val_id].draw(draw_xs[val_id], draw_ys[val_id]);
-            selectedColorImgs[val_id].draw(draw_xs[val_id], draw_ys[val_id]);
+            draw_xs[id_lf] = draw_whole_x + target_xs[id_lf];
+            draw_ys[id_lf] = draw_whole_y + target_ys[id_lf];
+            //bipolarizedImgs[id_lf].draw(draw_xs[id_lf], draw_ys[id_lf]);
+            selectedColorImgs[id_lf].draw(draw_xs[id_lf], draw_ys[id_lf]);
         }
         
-        // calculate the brightness of lightface(=LfRectBrightness)
-        for (int val_id=0; val_id<val_size; val_id++){
-            int pxCount_max = target_ws[val_id]*target_hs[val_id];
-            int pxCount_min = 0;
-            int LfRectBrightness = 255*pxCounts[val_id]/(pxCount_max-pxCount_min);
-            LfRectBrightnesss[val_id] = LfRectBrightness;
-            printf("id %d   pxCount %d   LfRectBrightness %d \n", val_id, pxCounts[val_id], LfRectBrightness);
+        //LF rect control flow
+        threshold_bNum = 5;
+        
+        for(int id_lf=0; id_lf<num_lf; id_lf++){
+            printf("%d \n", lfRect[id_lf].status);
+            if(lfRect[id_lf].status==3){
+                if(pxCounts[id_lf] >= threshold_bNum){
+                    lfRect[id_lf].status = 1;
+                }
+            }
+            
+            else if(lfRect[id_lf].status==0 && lfRect[id_lf].status!=bStatus[id_lf]){
+                minRectNum.push_back(id_lf);
+            }
+            bStatus[id_lf] = lfRect[id_lf].status;
         }
+        
+        if(minRectNum.size() >= threshold_mNum){
+            lfRect[minRectNum[0]].status = 2;
+            minRectNum.erase(minRectNum.begin());
+        }
+        
+        //LF rect update
+        for(int id_lf=0; id_lf<num_lf; id_lf++){
+            lfRect[id_lf].update();
+        }
+        
+        // get the brightness of lightface
+        for (int id_lf=0; id_lf<num_lf; id_lf++){
+            LfRectBrightnesss[id_lf] = lfRect[id_lf].getBrightness();
+            printf("id %d   pxCount %d   lfBrightness %d \n", id_lf, pxCounts[id_lf], LfRectBrightnesss[id_lf]);
+        }
+        
         
         // draw values(pxCount, LfRectBrightness)
-        for (int val_id=0; val_id<val_size; val_id++){
+        for (int id_lf=0; id_lf<num_lf; id_lf++){
             ofSetHexColor(0xffffff);
             stringstream reportStr1;
-            reportStr1 << pxCounts[val_id] << "_" << LfRectBrightnesss[val_id];
-            ofDrawBitmapString(reportStr1.str(), draw_xs[val_id], draw_ys[val_id]+10);
+            reportStr1 << pxCounts[id_lf] << "_" << LfRectBrightnesss[id_lf];
+            ofDrawBitmapString(reportStr1.str(), draw_xs[id_lf], draw_ys[id_lf]+10);
         }
 
         // draw settings
         stringstream reportStr;
-        //reportStr << "bg subtraction and blob detection" << endl
-        //<< "press ' ' to capture bg" << endl
-        //<< "threshold " << threshold << " (press: +/-)" << endl
         reportStr << "fps: " << ofGetFrameRate();
         ofDrawBitmapString(reportStr.str(), draw_whole_x, draw_whole_y+cam_h+50);
         
         // send(write) values to Arduino
         if (isPressed) {
-            for (int i=0; i<val_size; i++){
-                isValids[i] = false;
-                int high = (LfRectBrightnesss[i] >> 7) & 127;
-                int low  = LfRectBrightnesss[i] & 127;
-                bool byteWasWritten1 = mySerial.writeByte(128+i);
+            for (int id_lf=0; id_lf<num_lf; id_lf++){
+                isValids[id_lf] = false;
+                int high = (LfRectBrightnesss[id_lf] >> 7) & 127;
+                int low  = LfRectBrightnesss[id_lf] & 127;
+                bool byteWasWritten1 = mySerial.writeByte(128+id_lf);
                 bool byteWasWritten2 = mySerial.writeByte(high);
                 bool byteWasWritten3 = mySerial.writeByte(low);
                 if ( byteWasWritten1 && byteWasWritten2 && byteWasWritten3 ) {
-                    printf("           write LfRectBrightness %d \n", LfRectBrightnesss[i]);
-                    isValids[i] = true;
+                    printf("           write lfBrightness %d \n", LfRectBrightnesss[id_lf]);
+                    isValids[id_lf] = true;
                 } else {
                     printf("an error occurred \n");
                 }
             }
         }
+    }
+
+    //LF rect draw
+    for(int id_lf=0; id_lf<num_lf; id_lf++){
+        lfRect[id_lf].draw();
     }
 }
 
@@ -229,17 +262,6 @@ void ofApp::keyPressed(int key){
         case 'g':
             isPressed = true;
             break;
-		//case ' ':
-			//bLearnBakground = true;
-			//break;
-		//case '+':
-			//threshold ++;
-			//if (threshold > 255) threshold = 255;
-			//break;
-		//case '-':
-			//threshold --;
-			//if (threshold < 0) threshold = 0;
-			//break;
         case 'q':
             isBig = true;
             isSmall = false;
@@ -351,11 +373,11 @@ void ofApp::keyPressed(int key){
         XML.setTo("//XYWH"); // set back to the root node
         for (int w=0; w<num_w; w++){
             for (int h=0; h<num_h; h++){
-                int val_id = w*num_w+h;
-                XML.addValue("X"+ofToString(val_id), ofToString(target_xs[val_id]));
-                XML.addValue("Y"+ofToString(val_id), ofToString(target_ys[val_id]));
-                XML.addValue("W"+ofToString(val_id), ofToString(target_ws[val_id]));
-                XML.addValue("H"+ofToString(val_id), ofToString(target_hs[val_id]));
+                int id_lf = w*num_w+h;
+                XML.addValue("X"+ofToString(id_lf), ofToString(target_xs[id_lf]));
+                XML.addValue("Y"+ofToString(id_lf), ofToString(target_ys[id_lf]));
+                XML.addValue("W"+ofToString(id_lf), ofToString(target_ws[id_lf]));
+                XML.addValue("H"+ofToString(id_lf), ofToString(target_hs[id_lf]));
             }
         }
         XML.save("mySettings.xml");
