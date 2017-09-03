@@ -44,13 +44,14 @@ public:
     static const int num_h = 3;
     static const int num_lf = num_w * num_h;
     bool isValids[num_lf];
-    const int cam_coe = 2;
-    const int target_whole_base = 200;
+    const int cam_coe = 6;
+    //const int target_whole_base = 200;
+    const int target_whole_size = 1080;
     
     int cam_w;
     int cam_h;
-    int target_whole_x = 20;
-    int target_whole_y = 20;
+    int target_whole_x = 420;
+    int target_whole_y = 0;
     int target_whole_w;
     int target_whole_h;
     int target_xs[num_lf];
@@ -83,6 +84,7 @@ public:
     //LF simulator
     LfRect lfRect[9];
     int bStatus[9];
+    int draw_simul_x = 1800;
 
     //lightface rect setup
     int size = 150;

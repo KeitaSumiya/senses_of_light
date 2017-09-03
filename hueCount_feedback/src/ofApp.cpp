@@ -10,12 +10,14 @@ void ofApp::setup(){
     colorImg_cam.allocate(cam_w,cam_h);
     printf("cam_w %d   cam_h %d \n", cam_w, cam_h );
     
-    ofSetFrameRate(5);
+    ofSetFrameRate(1);
     mySerial.setup("/dev/cu.usbmodem1421",9600);
     
     // decide position of lf-rectangle in image from webcam
-    target_whole_w = cam_coe*target_whole_base;
-    target_whole_h = cam_coe*target_whole_base;
+    //target_whole_w = cam_coe*target_whole_base;
+    //target_whole_h = cam_coe*target_whole_base;
+    target_whole_w = target_whole_size;
+    target_whole_h = target_whole_size;
     if (target_whole_w > cam_w - target_whole_x){
         target_whole_w = cam_w - target_whole_x;
     }
@@ -50,7 +52,7 @@ void ofApp::setup(){
     
     for(int w=0; w<num_w; w++){
         for(int h=0; h<num_h; h++){
-            int x = 1000         + (size+gap)*w;
+            int x = draw_simul_x + (size+gap)*w;
             int y = draw_whole_y + (size+gap)*h + gap*5;
             lfRect[w*3+h].setup(ofVec2f(x,y), size, 10);
         }
@@ -126,8 +128,8 @@ void ofApp::draw(){
             //170: Blue
             //205: Purple
             //255: Red (wraps round to 0)
-            int hueMin = 160;
-            int hueMax = hueMin + 20;
+            int hueMin = 0;
+            int hueMax = hueMin + 255;
             for (int img_w=0; img_w<target_w; img_w++){
                 for (int img_h=0; img_h<target_h; img_h++){
                     float hue =        imgs[id_lf].getColor(img_w, img_h).getHue();
@@ -187,6 +189,15 @@ void ofApp::draw(){
         //LF rect control flow
         threshold_bNum = 5;
         
+        ofSetColor(0, 255, 0);
+        int siml_x = draw_simul_x         - gap;
+        int siml_y = draw_whole_y + gap*5 - gap;
+        int siml_w = (size+gap)*num_w     + gap;
+        int siml_h = (size+gap)*num_h     + gap;
+        ofDrawRectangle(siml_x, siml_y, siml_w, siml_h);
+
+        ofSetHexColor(0xffffff);
+
         for(int id_lf=0; id_lf<num_lf; id_lf++){
             printf("%d \n", lfRect[id_lf].status);
             if(lfRect[id_lf].status==3){
